@@ -153,7 +153,29 @@ const loginUser = asyncHandler( async (req,res) =>{
 })
 
 const logoutUser = asyncHandler(async (req,res) =>{
-      
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshToken:undefined
+            }
+        },
+        {
+            new:true
+        }
+      )
+
+      const options = {
+        httpOnly: true,
+        secure:true
+        // by defualt any one can change cooke from fronted when use true the httponly and secure then its only changeable from server
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged Out"))
 })
 
 export {
