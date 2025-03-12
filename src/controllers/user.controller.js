@@ -250,10 +250,60 @@ const changeCurrentPassword = asyncHandler(async (req,res)=>{
     .json(new ApiResponse(200, {}, "Password changed"))
 })
 
-const getCurrentUser = asyncHandler((res)=>{
+const getCurrentUser = asyncHandler(async(res)=>{
     return res
     .status(200)
     .json(new ApiResponse(200, req.user, "User fetch successfully"))
+})
+
+const updateAccountDetails = asyncHandler(async(req,res)=>{
+    const {fullName, email} = req.body
+
+    if(!fullName || !email){
+        throw new ApiError(400, "Full name and email are required")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{fullName, email},
+        },
+        {new:true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, "Account details updated successfully")
+    )
+})
+
+const updateUserAvatar = asyncHandler(async (req,res)=>{
+    const avatarLocalPath = req.file?.path
+
+    if(!avatarLocalPath){
+        throw new ApiError(400, "Avatar is required")
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!avatar.url){
+        throw new ApiError(500, "Failed to upload avatar")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        {$set:{
+            avatar:avatar.url
+        }},
+        {new:true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user, "Avatar updated successfully")
+    )
 })
 
 export {
@@ -261,5 +311,7 @@ export {
     loginUser,
     logoutUser,
     refreshAccessToken,
-    getCurrentUser
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar
   }
