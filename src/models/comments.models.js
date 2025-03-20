@@ -18,4 +18,4 @@
  })
 
 
-export const Comment = mongoose.models("comment" , commentSchema)
+export const Comment = mongoose.model("comment" , commentSchema)
