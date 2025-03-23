@@ -24,10 +24,25 @@ cloudinary.config({
           return null;
       }
   }
+
+  const deleteOnCloudinary = async(public_ID) =>{
+    try {
+        if(!public_ID){
+            return null
+        }
+
+        const response = await cloudinary.uploader.destroy(public_ID, { resource_type: "auto" } ,function(results) {console.log(results)})
+        console.log("file is delete on cloudinary ", response);
+        return response
+    } catch (error) {
+        console.log(error,"get error while deleteing error")
+        return null
+    }
+  }
   
   
   
-  export {uploadOnCloudinary}
+  export {uploadOnCloudinary,deleteOnCloudinary}
     
 
 
