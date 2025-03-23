@@ -5,7 +5,7 @@ import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
-import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {deleteOnCloudinary, uploadOnCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -149,8 +149,8 @@ const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
 
-    if(!videoId){
-        throw new ApiError(400,"Video id is required")
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid videoId");
     }
 
     const video = await Video.aggregate([
@@ -257,11 +257,80 @@ const getVideoById = asyncHandler(async (req, res) => {
         }
     ])
 
+    if(!video){
+        return res.status(404).send({message: "Video not found"})
+    }
+     await Video.findByIdAndUpdate(videoId,{
+        $inc: {views: 1}
+     })
+
+     await User.findByIdAndUpdate(req.user?._id,{
+        $addToSet:{
+            watchHistory: videoId
+        }
+     })
+   return res
+   .status(200)
+   .json(new ApiResponse(200,video[0],"video details fetched successfully"))
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    const {title,description} = req.body
     //TODO: update video details like title, description, thumbnail
+
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400, "Invalid videoId");
+    }
+ 
+
+    if(!(description && title)){
+       throw new ApiError(400,"title and description are required")
+    }
+     
+    const video = await Video.findById(videoId)
+
+    if(!video){
+        throw new ApiError(404,"Video not found")
+    }
+
+    if(video.owner !== req.user?._id){
+        throw new ApiError(400,"You can't edit this video as you are not the owner")
+    }
+
+    const thumbnailToDelete  = video.thumbnail.public_id
+    const thumbnailToUpdate = req.file?.path
+
+    if(!thumbnailToUpdate){
+        throw new ApiError(400,"Thumbnail is required")
+    }
+
+    const thumbnail = await uploadOnCloudinary(thumbnailToUpdate)
+
+    const updatedVideo = await Video.findByIdAndUpdate(videoId,
+        {
+            $set:{
+                title:title,
+                description:description,
+                thumbnail:{
+                    public_id:thumbnail.public_id,
+                    url:thumbnail.url
+                }
+            }
+        }
+    )
+
+   if(!updatedVideo){
+    throw new ApiError(500,"Failed to update video")
+   }
+
+   if(updatedVideo){
+    await deleteOnCloudinary(thumbnailToDelete)
+   }
+
+   return res
+   .status(200)
+   .json(new ApiResponse(200,updatedVideo,"Video updated successfully"))
 
 })
 
