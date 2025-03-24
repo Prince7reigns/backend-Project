@@ -33,7 +33,49 @@ const getUserTweets = asyncHandler(async (req, res) => {
 
 const updateTweet = asyncHandler(async (req, res) => {
     //TODO: update tweet
+    const {tweetiId} = req.params
+    const {content} = req.body
+
+    if(!content){
+        throw new ApiError(400, "Tweet content is required")
+    }
+
+    if(!mongoose.Types.ObjectId.isValid(tweetiId)){
+        throw new ApiError(400, "Invalid tweet id")
+    }
+
+    const tweet = await Tweet.findById(tweetiId)
+
+    if(!tweet){
+        throw new ApiError(404, "Tweet not found")
+    }
+
+    if (!req.user || !tweet.owner.equals(req.user._id)) {
+        throw new ApiError(403, "You are not the owner of this this tweet");
+    }
+
+
+    const updatedTweet = await Tweet.findByIdAndUpdate(
+        tweetiId,
+        {
+            $set:{
+                content:content
+            }
+        },{new:true}
+    )
+
+    if(!updateTweet){
+        throw new ApiError(500, "Failed to update tweet")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,updatedTweet, "Tweet updated successfully")
+    )
 })
+
+
 
 const deleteTweet = asyncHandler(async (req, res) => {
     //TODO: delete tweet
