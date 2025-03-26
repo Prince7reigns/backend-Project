@@ -19,7 +19,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // this helps in seraching only in title, desc providing faster search results
     // here the name of search index is 'search-videos'
 
-    
+    console.log(query, sortBy, sortType, userId );
+    console.log(req.query)
     const pipeline = [];
 
     if(query){
